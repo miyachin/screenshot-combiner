@@ -21,6 +21,11 @@ function App() {
   const [images, setImages] = useState<ImageItem[]>([])
   const [aspectIndex, setAspectIndex] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+  const [bezelThickness, setBezelThickness] = useState(12)
+  const [phoneScale, setPhoneScale] = useState(1)
+  const [bezelXOffset, setBezelXOffset] = useState(0)
+  const [bezelYOffset, setBezelYOffset] = useState(0)
+  const [phoneGap, setPhoneGap] = useState(60)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -78,7 +83,7 @@ function App() {
 
     const count = images.length
     const padding = 80
-    const gap = 60
+    const gap = phoneGap
     const hasAnyCaption = images.some(item => item.caption)
     const captionHeight = hasAnyCaption ? 100 : 0
     const totalGap = gap * (count - 1)
@@ -87,7 +92,7 @@ function App() {
     const slotHeight = CANVAS_HEIGHT - padding * 2 - captionHeight
 
     // Phone mockup constants
-    const bezel = 12
+    const bezel = bezelThickness
     const cornerRadius = 52
     const homeBarWidth = 80
     const homeBarHeight = 4
@@ -123,11 +128,16 @@ function App() {
         screenW = screenSlotHeight * imgAspect
       }
 
-      const phoneW = screenW + bezel * 2
-      const phoneH = screenH + bezel * 2
+      const scaledBezel = bezel * phoneScale
+      const scaledScreenW = screenW * phoneScale
+      const scaledScreenH = screenH * phoneScale
+      const scaledCornerRadius = cornerRadius * phoneScale
+
+      const phoneW = scaledScreenW + scaledBezel * 2
+      const phoneH = scaledScreenH + scaledBezel * 2
       const slotX = padding + i * (slotWidth + gap)
-      const phoneX = slotX + (slotWidth - phoneW) / 2
-      const phoneY = padding + (slotHeight - phoneH) / 2
+      const phoneX = slotX + (slotWidth - phoneW) / 2 + bezelXOffset
+      const phoneY = padding + (slotHeight - phoneH) / 2 + bezelYOffset
 
       // Shadow
       ctx.save()
@@ -135,41 +145,43 @@ function App() {
       ctx.shadowBlur = 30
       ctx.shadowOffsetX = 0
       ctx.shadowOffsetY = 10
-      roundRect(phoneX, phoneY, phoneW, phoneH, cornerRadius)
+      roundRect(phoneX, phoneY, phoneW, phoneH, scaledCornerRadius)
       ctx.fillStyle = '#1a1a1a'
       ctx.fill()
       ctx.restore()
 
       // Phone body
-      roundRect(phoneX, phoneY, phoneW, phoneH, cornerRadius)
+      roundRect(phoneX, phoneY, phoneW, phoneH, scaledCornerRadius)
       ctx.fillStyle = '#1a1a1a'
       ctx.fill()
 
       // Screen area (clipped with rounded corners)
-      const screenX = phoneX + bezel
-      const screenY = phoneY + bezel
-      const innerRadius = cornerRadius - bezel
+      const screenX = phoneX + scaledBezel
+      const screenY = phoneY + scaledBezel
+      const scaledInnerRadius = scaledCornerRadius - scaledBezel
       ctx.save()
-      roundRect(screenX, screenY, screenW, screenH, innerRadius)
+      roundRect(screenX, screenY, scaledScreenW, scaledScreenH, scaledInnerRadius)
       ctx.clip()
-      ctx.drawImage(img, screenX, screenY, screenW, screenH)
+      ctx.drawImage(img, screenX, screenY, scaledScreenW, scaledScreenH)
       ctx.restore()
 
       // Dynamic Island
-      const islandWidth = screenW * 0.28
-      const islandHeight = 20
+      const islandWidth = scaledScreenW * 0.28
+      const islandHeight = 20 * phoneScale
       const islandX = phoneX + phoneW / 2 - islandWidth / 2
-      const islandY = screenY + 14
+      const islandY = screenY + 14 * phoneScale
       ctx.beginPath()
       ctx.roundRect(islandX, islandY, islandWidth, islandHeight, islandHeight / 2)
       ctx.fillStyle = '#000000'
       ctx.fill()
 
       // Home bar indicator
-      const barX = phoneX + phoneW / 2 - homeBarWidth / 2
-      const barY = phoneY + phoneH - bezel - 10
+      const scaledHomeBarWidth = homeBarWidth * phoneScale
+      const barX = phoneX + phoneW / 2 - scaledHomeBarWidth / 2
+      const barY = phoneY + phoneH - scaledBezel - 10 * phoneScale
+      const scaledHomeBarHeight = homeBarHeight * phoneScale
       ctx.beginPath()
-      ctx.roundRect(barX, barY, homeBarWidth, homeBarHeight, 2)
+      ctx.roundRect(barX, barY, scaledHomeBarWidth, scaledHomeBarHeight, 2 * phoneScale)
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)'
       ctx.fill()
 
@@ -202,7 +214,7 @@ function App() {
         })
       }
     })
-  }, [images, aspectIndex])
+  }, [images, aspectIndex, bezelThickness, phoneScale, bezelXOffset, bezelYOffset, phoneGap])
 
   useEffect(() => {
     drawCanvas()
@@ -339,6 +351,85 @@ function App() {
                     {ratio.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="mb-6 p-4 bg-neutral-900 rounded-xl border border-neutral-800 space-y-3">
+              <div>
+                <label className="text-xs text-neutral-400 font-medium">Bezel Thickness</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="range"
+                    min="0"
+                    max="30"
+                    step="1"
+                    value={bezelThickness}
+                    onChange={(e) => setBezelThickness(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs text-neutral-500 w-8">{bezelThickness}px</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-neutral-400 font-medium">Phone Gap</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="range"
+                    min="-300"
+                    max="150"
+                    step="5"
+                    value={phoneGap}
+                    onChange={(e) => setPhoneGap(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs text-neutral-500 w-12">{phoneGap > 0 ? '+' : ''}{phoneGap}px</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-neutral-400 font-medium">Phone Size</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2"
+                    step="0.05"
+                    value={phoneScale}
+                    onChange={(e) => setPhoneScale(parseFloat(e.target.value))}
+                    className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs text-neutral-500 w-10">{(phoneScale * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-neutral-400 font-medium">Position (Horizontal)</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="range"
+                    min="-300"
+                    max="300"
+                    step="10"
+                    value={bezelXOffset}
+                    onChange={(e) => setBezelXOffset(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs text-neutral-500 w-12">{bezelXOffset > 0 ? '+' : ''}{bezelXOffset}px</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-neutral-400 font-medium">Position (Vertical)</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="range"
+                    min="-300"
+                    max="300"
+                    step="10"
+                    value={bezelYOffset}
+                    onChange={(e) => setBezelYOffset(parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs text-neutral-500 w-12">{bezelYOffset > 0 ? '+' : ''}{bezelYOffset}px</span>
+                </div>
               </div>
             </div>
             <div className="rounded-2xl overflow-hidden ring-1 ring-neutral-800">
