@@ -25,7 +25,8 @@ function App() {
   const [phoneScale, setPhoneScale] = useState(1)
   const [bezelXOffset, setBezelXOffset] = useState(0)
   const [bezelYOffset, setBezelYOffset] = useState(0)
-  const [phoneGap, setPhoneGap] = useState(60)
+  const [phoneGap, setPhoneGap] = useState(0)
+  const [bezelColor, setBezelColor] = useState('#1a1a1a')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -115,12 +116,11 @@ function App() {
       ctx.closePath()
     }
 
-    images.forEach((item, i) => {
-      const { img, caption } = item
-
-      // Calculate phone frame size based on screenshot aspect ratio
+    // First pass: calculate all phone dimensions to determine total width for centering
+    const phoneDimensions = images.map((item) => {
+      const { img } = item
       const imgAspect = img.naturalWidth / img.naturalHeight
-      const screenSlotWidth = slotWidth - bezel * 2
+      const screenSlotWidth = gap === 0 ? slotWidth : slotWidth - bezel * 2
       const screenSlotHeight = slotHeight - bezel * 2
 
       let screenW: number, screenH: number
@@ -139,8 +139,29 @@ function App() {
 
       const phoneW = scaledScreenW + scaledBezel * 2
       const phoneH = scaledScreenH + scaledBezel * 2
-      const slotX = padding + i * (slotWidth + gap)
-      const phoneX = slotX + (slotWidth - phoneW) / 2 + bezelXOffset
+
+      return {
+        screenW,
+        screenH,
+        phoneW,
+        phoneH,
+        scaledBezel,
+        scaledScreenW,
+        scaledScreenH,
+        scaledCornerRadius,
+      }
+    })
+
+    // Calculate total width and center offset
+    const totalPhoneWidth = phoneDimensions.reduce((sum, dim) => sum + dim.phoneW, 0) + gap * (count - 1)
+    const centerOffsetX = (CANVAS_WIDTH - totalPhoneWidth) / 2
+
+    images.forEach((item, i) => {
+      const { img, caption } = item
+      const dim = phoneDimensions[i]
+      const { screenW, screenH, phoneW, phoneH, scaledBezel, scaledScreenW, scaledScreenH, scaledCornerRadius } = dim
+
+      const phoneX = centerOffsetX + i * (phoneW + gap) + bezelXOffset
       const phoneY = padding + (slotHeight - phoneH) / 2 + bezelYOffset
 
       // Shadow
@@ -150,13 +171,13 @@ function App() {
       ctx.shadowOffsetX = 0
       ctx.shadowOffsetY = 10
       roundRect(phoneX, phoneY, phoneW, phoneH, scaledCornerRadius)
-      ctx.fillStyle = '#1a1a1a'
+      ctx.fillStyle = bezelColor
       ctx.fill()
       ctx.restore()
 
       // Phone body
       roundRect(phoneX, phoneY, phoneW, phoneH, scaledCornerRadius)
-      ctx.fillStyle = '#1a1a1a'
+      ctx.fillStyle = bezelColor
       ctx.fill()
 
       // Screen area (clipped with rounded corners)
@@ -218,7 +239,7 @@ function App() {
         })
       }
     })
-  }, [images, aspectIndex, bezelThickness, phoneScale, bezelXOffset, bezelYOffset, phoneGap])
+  }, [images, aspectIndex, bezelThickness, phoneScale, bezelXOffset, bezelYOffset, phoneGap, bezelColor])
 
   useEffect(() => {
     drawCanvas(false)
@@ -271,10 +292,10 @@ function App() {
     <div className="min-h-screen bg-neutral-950 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-white text-center mb-1 tracking-tight">
-          Screenshot Combiner
+          shot board
         </h1>
         <p className="text-neutral-500 text-sm text-center mb-10">
-          Upload up to 3 screenshots and export as a single image
+          Combine screenshots into beautiful mockups
         </p>
 
         {/* Drop zone */}
@@ -323,9 +344,11 @@ function App() {
                   />
                   <button
                     onClick={() => removeImage(i)}
-                    className="absolute -top-2 -right-2 bg-neutral-700 hover:bg-red-500 text-neutral-300 hover:text-white rounded-full w-6 h-6 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                    className="absolute -top-2 -right-2 bg-neutral-700 hover:bg-red-500 text-neutral-300 hover:text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                   >
-                    x
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
                 <input
@@ -376,7 +399,28 @@ function App() {
                     onChange={(e) => setBezelThickness(parseInt(e.target.value))}
                     className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
                   />
-                  <span className="text-xs text-neutral-500 w-8">{bezelThickness}px</span>
+                  <span className="text-xs text-neutral-500 w-12">{bezelThickness}px</span>
+                  <button
+                    onClick={() => setBezelThickness(12)}
+                    className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
+                    title="Reset to default"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-neutral-400 font-medium">Bezel Color</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="color"
+                    value={bezelColor}
+                    onChange={(e) => setBezelColor(e.target.value)}
+                    className="h-8 w-12 rounded cursor-pointer border border-neutral-600"
+                  />
+                  <span className="text-xs text-neutral-500 font-mono flex-1">{bezelColor}</span>
                 </div>
               </div>
               <div>
@@ -392,6 +436,15 @@ function App() {
                     className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
                   />
                   <span className="text-xs text-neutral-500 w-12">{phoneGap > 0 ? '+' : ''}{phoneGap}px</span>
+                  <button
+                    onClick={() => setPhoneGap(0)}
+                    className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
+                    title="Reset to default"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
                 </div>
               </div>
               <div>
@@ -406,7 +459,16 @@ function App() {
                     onChange={(e) => setPhoneScale(parseFloat(e.target.value))}
                     className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
                   />
-                  <span className="text-xs text-neutral-500 w-10">{(phoneScale * 100).toFixed(0)}%</span>
+                  <span className="text-xs text-neutral-500 w-12">{(phoneScale * 100).toFixed(0)}%</span>
+                  <button
+                    onClick={() => setPhoneScale(1)}
+                    className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
+                    title="Reset to default"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
                 </div>
               </div>
               <div>
@@ -422,6 +484,15 @@ function App() {
                     className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
                   />
                   <span className="text-xs text-neutral-500 w-12">{bezelXOffset > 0 ? '+' : ''}{bezelXOffset}px</span>
+                  <button
+                    onClick={() => setBezelXOffset(0)}
+                    className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
+                    title="Reset to default"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
                 </div>
               </div>
               <div>
@@ -437,6 +508,15 @@ function App() {
                     className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
                   />
                   <span className="text-xs text-neutral-500 w-12">{bezelYOffset > 0 ? '+' : ''}{bezelYOffset}px</span>
+                  <button
+                    onClick={() => setBezelYOffset(0)}
+                    className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
+                    title="Reset to default"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
