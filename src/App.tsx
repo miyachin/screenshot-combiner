@@ -159,7 +159,7 @@ function App() {
     images.forEach((item, i) => {
       const { img, caption } = item
       const dim = phoneDimensions[i]
-      const { screenW, screenH, phoneW, phoneH, scaledBezel, scaledScreenW, scaledScreenH, scaledCornerRadius } = dim
+      const { phoneW, phoneH, scaledBezel, scaledScreenW, scaledScreenH, scaledCornerRadius } = dim
 
       const phoneX = centerOffsetX + i * (phoneW + gap) + bezelXOffset
       const phoneY = padding + (slotHeight - phoneH) / 2 + bezelYOffset
@@ -235,7 +235,7 @@ function App() {
 
         const startY = padding + slotHeight + 32
         lines.forEach((line, li) => {
-          ctx.fillText(line, slotX + slotWidth / 2, startY + li * lineHeight)
+          ctx.fillText(line, phoneX + phoneW / 2, startY + li * lineHeight)
         })
       }
     })
