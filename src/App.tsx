@@ -21,11 +21,11 @@ function App() {
   const [images, setImages] = useState<ImageItem[]>([])
   const [aspectIndex, setAspectIndex] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
-  const [bezelThickness, setBezelThickness] = useState(12)
+  const [bezelThickness, setBezelThickness] = useState(10)
   const [phoneScale, setPhoneScale] = useState(1)
   const [bezelXOffset, setBezelXOffset] = useState(0)
   const [bezelYOffset, setBezelYOffset] = useState(0)
-  const [phoneGap, setPhoneGap] = useState(0)
+  const [phoneGap, setPhoneGap] = useState(50)
   const [bezelColor, setBezelColor] = useState('#1a1a1a')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -291,8 +291,8 @@ function App() {
   return (
     <div className="min-h-screen bg-neutral-950 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-white text-center mb-1 tracking-tight">
-          shot board
+        <h1 className="text-3xl font-bold text-center mb-1 tracking-tight bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-clip-text text-transparent">
+          SnapBoard
         </h1>
         <p className="text-neutral-500 text-sm text-center mb-10">
           Combine screenshots into beautiful mockups
@@ -320,7 +320,7 @@ function App() {
             onChange={handleFileSelect}
             className="hidden"
           />
-          <div className={`text-4xl mb-3 ${isDragging ? 'text-violet-400' : 'text-neutral-600'}`}>+</div>
+          <div className={`text-4xl mb-3 transition-transform ${isDragging ? 'text-violet-400 scale-125' : 'text-neutral-600 animate-pulse'}`}>+</div>
           <p className="text-neutral-400 text-sm">
             {images.length >= MAX_IMAGES
               ? 'Maximum number of images reached'
@@ -340,7 +340,7 @@ function App() {
                   <img
                     src={item.url}
                     alt={`Screenshot ${i + 1}`}
-                    className="h-36 rounded-xl object-contain bg-neutral-900 ring-1 ring-neutral-800"
+                    className="h-36 rounded-xl object-contain bg-neutral-900 ring-1 ring-neutral-800 transition-transform duration-200 group-hover:-rotate-1 group-hover:scale-105"
                   />
                   <button
                     onClick={() => removeImage(i)}
@@ -401,7 +401,7 @@ function App() {
                   />
                   <span className="text-xs text-neutral-500 w-12">{bezelThickness}px</span>
                   <button
-                    onClick={() => setBezelThickness(12)}
+                    onClick={() => setBezelThickness(10)}
                     className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
                     title="Reset to default"
                   >
@@ -437,7 +437,7 @@ function App() {
                   />
                   <span className="text-xs text-neutral-500 w-12">{phoneGap > 0 ? '+' : ''}{phoneGap}px</span>
                   <button
-                    onClick={() => setPhoneGap(0)}
+                    onClick={() => setPhoneGap(50)}
                     className="text-neutral-500 hover:text-neutral-300 transition-colors p-1"
                     title="Reset to default"
                   >
